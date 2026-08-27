@@ -4,43 +4,54 @@ import { z } from 'zod';
 /**
  * Environment contract.
  *
- * Parsed once, at module load, so a misconfigured deployment fails immediately
- * and loudly rather than at the first database query or model call. Importing
- * `server-only` means a client component that reaches for this fails the build
- * instead of shipping secrets to the browser.
+ * Parsing is lazy and deliberately so: `next build` runs with
+ * NODE_ENV=production, and a build must not require runtime secrets — that
+ * would make it impossible to build in CI, or in any pipeline where database
+ * credentials are injected at deploy time rather than compile time.
  *
- * Slots for DATABASE_URL and ANTHROPIC_API_KEY are declared now and consumed in
- * later phases; they are optional in development so the design system can run
- * with no credentials at all.
+ * The fail-fast guarantee is preserved by moving it to the point of use:
+ * `requireDatabaseUrl()` throws at the first runtime attempt to reach a
+ * database that has not been configured.
+ *
+ * Importing `server-only` means a client component that reaches for any of this
+ * fails the build rather than shipping secrets to the browser.
  */
-
-const isProduction = process.env.NODE_ENV === 'production';
-
-const requiredInProduction = (schema: z.ZodString, name: string) =>
-  isProduction
-    ? schema.min(1, `${name} is required in production`)
-    : schema.min(1).optional();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
-  /** Postgres (Neon). Consumed from Phase 2 onward. */
-  DATABASE_URL: requiredInProduction(
-    z.string().refine(
+  /** Postgres (Neon). Required at runtime in production. */
+  DATABASE_URL: z
+    .string()
+    .refine(
       (value) => value.startsWith('postgres://') || value.startsWith('postgresql://'),
       'DATABASE_URL must be a postgres:// or postgresql:// connection string',
-    ),
-    'DATABASE_URL',
-  ),
+    )
+    .optional(),
 
   /** Anthropic credentials. Consumed from Phase 3 onward. */
-  ANTHROPIC_API_KEY: requiredInProduction(z.string(), 'ANTHROPIC_API_KEY'),
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
-function loadEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+let cached: Env | null = null;
+
+/**
+ * Reads and validates the environment once. Values that are present but
+ * malformed always throw; values that are absent are reported by the
+ * `require*` helpers at the point they are actually needed.
+ */
+export function getEnv(): Env {
+  if (cached) {
+    return cached;
+  }
+
+  const parsed = envSchema.safeParse({
+    NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL: process.env.DATABASE_URL || undefined,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+  });
 
   if (!parsed.success) {
     const issues = parsed.error.issues
@@ -49,17 +60,54 @@ function loadEnv(): Env {
 
     throw new Error(
       `Invalid environment configuration:\n${issues}\n\n` +
-        'Copy .env.example to .env.local and fill in the missing values.',
+        'Check .env.local against .env.example.',
     );
   }
 
-  return parsed.data;
+  cached = parsed.data;
+  return cached;
 }
 
-export const env = loadEnv();
+/** True only at runtime in production — not during a production build. */
+export function isProductionRuntime(): boolean {
+  return (
+    getEnv().NODE_ENV === 'production' &&
+    process.env.NEXT_PHASE !== 'phase-production-build'
+  );
+}
+
+/**
+ * The database connection string, or a clear failure explaining what to set.
+ * This is where the fail-fast guarantee lives now.
+ */
+export function requireDatabaseUrl(): string {
+  const { DATABASE_URL } = getEnv();
+
+  if (!DATABASE_URL) {
+    throw new Error(
+      'DATABASE_URL is not set. Add the Neon pooled connection string to .env.local ' +
+        '(see .env.example). In development you may omit it to use a local PGlite database.',
+    );
+  }
+
+  return DATABASE_URL;
+}
+
+export function requireAnthropicApiKey(): string {
+  const { ANTHROPIC_API_KEY } = getEnv();
+
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.example).');
+  }
+
+  return ANTHROPIC_API_KEY;
+}
 
 /** Capability flags, so callers branch on intent rather than on key presence. */
-export const capabilities = {
-  hasDatabase: Boolean(env.DATABASE_URL),
-  hasModelAccess: Boolean(env.ANTHROPIC_API_KEY),
-} as const;
+export function capabilities() {
+  const env = getEnv();
+  return {
+    hasDatabase: Boolean(env.DATABASE_URL),
+    hasModelAccess: Boolean(env.ANTHROPIC_API_KEY),
+  } as const;
+}

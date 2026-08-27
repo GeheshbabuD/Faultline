@@ -20,6 +20,9 @@ pnpm dev
 | Route | Purpose |
 | --- | --- |
 | `/` | Product statement |
+| `/practice` | The authored problem set |
+| `/practice/[slug]` | The guided reasoning workspace |
+| `/attempts/[id]` | A recorded reasoning trace |
 | `/design` | The design system reference — every primitive, rendered live |
 
 ## Commands
@@ -30,7 +33,23 @@ pnpm build       # production build (fails on type errors)
 pnpm verify      # typecheck + lint + unit tests
 pnpm test        # unit tests (vitest)
 pnpm test:e2e    # end-to-end tests (playwright, 3 device profiles)
+
+pnpm db:generate # generate a migration from the schema
+pnpm db:migrate  # apply migrations
+pnpm db:seed     # seed authored content (idempotent)
+pnpm db:studio   # browse the database
 ```
+
+## Database
+
+Neon serverless Postgres in production. Set `DATABASE_URL` in `.env.local` to the
+**pooled** Neon connection string.
+
+Without `DATABASE_URL`, the app falls back to a local **PGlite** database at
+`.pglite/` — Postgres compiled to WASM, so the same schema, migrations and SQL
+semantics apply. It auto-migrates and auto-seeds on boot, which means a fresh
+clone runs with no credentials, and the test suite exercises real persistence
+rather than mocks. Production requires `DATABASE_URL` and fails closed without it.
 
 ## Architecture
 
@@ -79,6 +98,15 @@ takes a band it is given; the policy that decides the band lives in `core/diagno
 
 ## Status
 
-Phase 1 of 10 — foundation and design system. There is no database, authentication or
-model integration yet; `src/server/config/env.ts` declares the slots those phases will
-consume.
+Phase 2 of 10 — problem model and guided reasoning stepper.
+
+Working: authored content with validated canonical reasoning, the reasoning
+workspace, and attempt persistence. `answer_correct` and `reasoning_status` are
+independent columns from the first migration, so a correct answer reached by
+faulty reasoning is representable before any analysis exists.
+
+Not yet built: reasoning comparison (Phase 3), misconception classification
+(Phase 4), and real authentication (Phase 8). `getCurrentActor()` in
+`src/server/auth/actor.ts` resolves a deterministic development actor that is a
+real row in `users`, so ownership boundaries are exercised now and Phase 8
+replaces only that function's body.

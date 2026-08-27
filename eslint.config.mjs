@@ -117,6 +117,20 @@ const config = [
   },
   ...boundaries,
   {
+    // Command-line scripts: printing progress to stdout is their purpose.
+    files: ['src/server/db/run-migrations.ts', 'src/server/db/seed-cli.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    // The single blessed reader of the wall clock. Everywhere else injects it.
+    files: ['src/core/clock.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}', '*.config.{ts,mts,mjs}'],
     rules: {
       'no-restricted-imports': 'off',

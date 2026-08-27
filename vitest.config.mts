@@ -8,6 +8,10 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@content': fileURLToPath(new URL('./content', import.meta.url)),
+      // `server-only` throws when it is resolved outside a React Server
+      // Component. Under test we are exercising the modules directly, so it is
+      // stubbed; the guarantee it provides still holds in the real build.
+      'server-only': fileURLToPath(new URL('./src/test/server-only-stub.ts', import.meta.url)),
     },
   },
   test: {

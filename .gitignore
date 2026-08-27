@@ -38,3 +38,6 @@ Thumbs.db
 
 # local visual checks
 .screenshots/
+
+# local pglite database
+.pglite/
