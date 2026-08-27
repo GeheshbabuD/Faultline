@@ -1,0 +1,341 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   FAULTLINE DESIGN TOKENS
+
+   Two rules govern this file:
+
+   1. Colour carries meaning. The interface is a warm neutral ground so that a
+      faultline reads as the most important thing on screen. Anything coloured
+      is saying something: suspect, diverged, repaired, uncertain.
+   2. Structure comes from borders and spacing, not shadows. Elevation is
+      reserved for things that genuinely float above the page.
+   ========================================================================= */
+
+:root {
+  /* --- Warm neutral ground ------------------------------------------------
+     Hue 75 at very low chroma. Paper and graphite, not cool SaaS grey. */
+  --fl-canvas:          oklch(0.986 0.003 75);
+  --fl-surface:         oklch(1 0 0);
+  --fl-surface-sunken:  oklch(0.962 0.004 75);
+  --fl-surface-raised:  oklch(1 0 0);
+
+  --fl-border-subtle:   oklch(0.928 0.005 75);
+  --fl-border:          oklch(0.882 0.006 75);
+  --fl-border-strong:   oklch(0.795 0.008 75);
+
+  --fl-ink-faint:       oklch(0.660 0.007 75);
+  --fl-ink-muted:       oklch(0.560 0.009 75);
+  --fl-ink-secondary:   oklch(0.435 0.011 75);
+  --fl-ink:             oklch(0.245 0.013 75);
+  --fl-ink-strong:      oklch(0.155 0.014 75);
+
+  /* --- Semantic reasoning states -----------------------------------------
+     Ordered by how loud they are allowed to be. */
+
+  /* Sound reasoning. Deliberately near-neutral: most steps are valid, and
+     valid steps must not compete with the divergence for attention. */
+  --fl-valid:           oklch(0.520 0.058 175);
+  --fl-valid-bg:        oklch(0.968 0.017 175);
+  --fl-valid-border:    oklch(0.878 0.036 175);
+
+  /* Possible divergence — not yet confirmed. Ochre. */
+  --fl-suspect:         oklch(0.588 0.110 72);
+  --fl-suspect-bg:      oklch(0.972 0.032 72);
+  --fl-suspect-border:  oklch(0.878 0.070 72);
+
+  /* Confirmed faultline. The loudest colour in the product; used at most
+     once per screen. Vermilion — geological, not "error red". */
+  --fl-faultline:       oklch(0.548 0.196 34);
+  --fl-faultline-bg:    oklch(0.968 0.028 34);
+  --fl-faultline-border: oklch(0.860 0.078 34);
+  --fl-faultline-ink:   oklch(0.430 0.170 34);
+
+  /* Repair confirmed / transfer passed. */
+  --fl-repaired:        oklch(0.545 0.128 150);
+  --fl-repaired-bg:     oklch(0.966 0.032 150);
+  --fl-repaired-border: oklch(0.868 0.068 150);
+
+  /* Low confidence / awaiting review. Desaturated slate — informational,
+     never authoritative. */
+  --fl-uncertain:       oklch(0.542 0.052 252);
+  --fl-uncertain-bg:    oklch(0.966 0.014 252);
+  --fl-uncertain-border: oklch(0.876 0.030 252);
+
+  /* Destructive system actions. Distinct from a faultline: cooler, quieter. */
+  --fl-danger:          oklch(0.512 0.168 18);
+  --fl-danger-bg:       oklch(0.966 0.026 18);
+  --fl-danger-border:   oklch(0.866 0.070 18);
+
+  /* Downstream of a divergence: affected, but not itself the fault. */
+  --fl-downstream:      oklch(0.640 0.030 75);
+
+  /* --- Interaction -------------------------------------------------------- */
+  --fl-focus:           oklch(0.548 0.196 34);
+  --fl-selection:       oklch(0.930 0.040 34);
+
+  /* --- Elevation. Overlays only. ------------------------------------------ */
+  --fl-shadow-overlay:
+    0 1px 2px oklch(0.2 0.01 75 / 0.06),
+    0 8px 24px -6px oklch(0.2 0.01 75 / 0.12),
+    0 2px 6px -2px oklch(0.2 0.01 75 / 0.08);
+  --fl-shadow-popover:
+    0 1px 2px oklch(0.2 0.01 75 / 0.05),
+    0 4px 12px -3px oklch(0.2 0.01 75 / 0.10);
+
+  color-scheme: light;
+}
+
+/* --- Dark theme ------------------------------------------------------------
+   Not an inversion. Chroma rises slightly so semantic colour survives on a
+   dark ground, and the canvas keeps its warm cast. */
+:root[data-theme='dark'] {
+  --fl-canvas:          oklch(0.171 0.005 75);
+  --fl-surface:         oklch(0.203 0.005 75);
+  --fl-surface-sunken:  oklch(0.150 0.005 75);
+  --fl-surface-raised:  oklch(0.232 0.006 75);
+
+  --fl-border-subtle:   oklch(0.262 0.006 75);
+  --fl-border:          oklch(0.312 0.007 75);
+  --fl-border-strong:   oklch(0.412 0.009 75);
+
+  --fl-ink-faint:       oklch(0.482 0.008 75);
+  --fl-ink-muted:       oklch(0.588 0.009 75);
+  --fl-ink-secondary:   oklch(0.712 0.010 75);
+  --fl-ink:             oklch(0.888 0.007 75);
+  --fl-ink-strong:      oklch(0.968 0.004 75);
+
+  --fl-valid:           oklch(0.700 0.078 175);
+  --fl-valid-bg:        oklch(0.252 0.030 175);
+  --fl-valid-border:    oklch(0.352 0.048 175);
+
+  --fl-suspect:         oklch(0.762 0.118 72);
+  --fl-suspect-bg:      oklch(0.268 0.048 72);
+  --fl-suspect-border:  oklch(0.382 0.076 72);
+
+  --fl-faultline:       oklch(0.688 0.178 34);
+  --fl-faultline-bg:    oklch(0.272 0.070 34);
+  --fl-faultline-border: oklch(0.402 0.116 34);
+  --fl-faultline-ink:   oklch(0.788 0.140 34);
+
+  --fl-repaired:        oklch(0.708 0.128 150);
+  --fl-repaired-bg:     oklch(0.258 0.044 150);
+  --fl-repaired-border: oklch(0.368 0.070 150);
+
+  --fl-uncertain:       oklch(0.702 0.062 252);
+  --fl-uncertain-bg:    oklch(0.258 0.026 252);
+  --fl-uncertain-border: oklch(0.362 0.042 252);
+
+  --fl-danger:          oklch(0.672 0.168 18);
+  --fl-danger-bg:       oklch(0.268 0.058 18);
+  --fl-danger-border:   oklch(0.392 0.100 18);
+
+  --fl-downstream:      oklch(0.500 0.020 75);
+
+  --fl-focus:           oklch(0.688 0.178 34);
+  --fl-selection:       oklch(0.352 0.090 34);
+
+  --fl-shadow-overlay:
+    0 1px 2px oklch(0 0 0 / 0.30),
+    0 8px 24px -6px oklch(0 0 0 / 0.50),
+    0 2px 6px -2px oklch(0 0 0 / 0.35);
+  --fl-shadow-popover:
+    0 1px 2px oklch(0 0 0 / 0.28),
+    0 4px 12px -3px oklch(0 0 0 / 0.42);
+
+  color-scheme: dark;
+}
+
+/* ============================================================================
+   TAILWIND THEME MAPPING
+   `inline` so utilities reference the custom properties directly and the
+   theme switch is a single attribute change with no recompilation.
+   ========================================================================= */
+
+@theme inline {
+  --color-canvas:           var(--fl-canvas);
+  --color-surface:          var(--fl-surface);
+  --color-surface-sunken:   var(--fl-surface-sunken);
+  --color-surface-raised:   var(--fl-surface-raised);
+
+  --color-line-subtle:      var(--fl-border-subtle);
+  --color-line:             var(--fl-border);
+  --color-line-strong:      var(--fl-border-strong);
+
+  --color-ink-faint:        var(--fl-ink-faint);
+  --color-ink-muted:        var(--fl-ink-muted);
+  --color-ink-secondary:    var(--fl-ink-secondary);
+  --color-ink:              var(--fl-ink);
+  --color-ink-strong:       var(--fl-ink-strong);
+
+  --color-valid:            var(--fl-valid);
+  --color-valid-bg:         var(--fl-valid-bg);
+  --color-valid-border:     var(--fl-valid-border);
+
+  --color-suspect:          var(--fl-suspect);
+  --color-suspect-bg:       var(--fl-suspect-bg);
+  --color-suspect-border:   var(--fl-suspect-border);
+
+  --color-faultline:        var(--fl-faultline);
+  --color-faultline-bg:     var(--fl-faultline-bg);
+  --color-faultline-border: var(--fl-faultline-border);
+  --color-faultline-ink:    var(--fl-faultline-ink);
+
+  --color-repaired:         var(--fl-repaired);
+  --color-repaired-bg:      var(--fl-repaired-bg);
+  --color-repaired-border:  var(--fl-repaired-border);
+
+  --color-uncertain:        var(--fl-uncertain);
+  --color-uncertain-bg:     var(--fl-uncertain-bg);
+  --color-uncertain-border: var(--fl-uncertain-border);
+
+  --color-danger:           var(--fl-danger);
+  --color-danger-bg:        var(--fl-danger-bg);
+  --color-danger-border:    var(--fl-danger-border);
+
+  --color-downstream:       var(--fl-downstream);
+
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', 'Cascadia Mono',
+    Menlo, Consolas, monospace;
+
+  /* Type scale. Body sits at 15px: dense enough for analytical reading,
+     comfortable enough for a student working through a problem. */
+  --text-2xs: 0.6875rem;   --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;      --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;    --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;  --text-base--line-height: 1.5rem;
+  --text-lg: 1.0625rem;    --text-lg--line-height: 1.625rem;
+  --text-xl: 1.25rem;      --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;      --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;    --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.375rem;    --text-4xl--line-height: 2.75rem;
+
+  /* Restrained radii. Nothing in Faultline is a pill except the smallest tags. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --shadow-overlay: var(--fl-shadow-overlay);
+  --shadow-popover: var(--fl-shadow-popover);
+
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+}
+
+/* ============================================================================
+   BASE
+   ========================================================================= */
+
+@layer base {
+  * {
+    border-color: var(--fl-border-subtle);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--fl-canvas);
+    color: var(--fl-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--fl-selection);
+    color: var(--fl-ink-strong);
+  }
+
+  /* One focus treatment everywhere, keyboard-only. */
+  :focus-visible {
+    outline: 2px solid var(--fl-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Tabular numerals wherever figures are compared: confidence values,
+     step indices, analytics. */
+  .tabular,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fl-ink-strong);
+    font-weight: 550;
+    letter-spacing: -0.011em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Motion communicates state change; it is never decorative. Users who ask
+     for less motion get none of it. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* An eyebrow: small, spaced, uppercase. Used for step labels and section
+     headers where hierarchy must be readable before the text is. */
+  .eyebrow {
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    font-weight: 600;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--fl-ink-muted);
+  }
+
+  .step-index {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+}
+
+/* Sequential reveal for reasoning steps. State change, not decoration. */
+@keyframes fl-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fl-fracture-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# testing
+coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# env — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# typescript
+*.tsbuildinfo
+
+# editor / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# vercel
+.vercel
+
+# local visual checks
+.screenshots/
