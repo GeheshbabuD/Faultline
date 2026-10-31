@@ -28,6 +28,17 @@ export function testTask<P = { n: number }, I = P, O = { doubled: number }>(
   return { ...base, ...overrides } as unknown as RegisteredTask;
 }
 
+/** A clock the test moves by hand, for leases and retry backoff. */
+export function manualClock(iso: string) {
+  let current = Date.parse(iso);
+  return {
+    now: () => new Date(current),
+    advance(ms: number) {
+      current += ms;
+    },
+  };
+}
+
 /** Resolves after `ms`, or rejects with the signal's reason if it aborts first. */
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
