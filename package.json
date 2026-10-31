@@ -18,8 +18,8 @@
     "test:e2e": "playwright test",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/server/db/run-migrations.ts",
-    "db:seed": "tsx src/server/db/seed-cli.ts",
+    "db:migrate": "tsx --conditions=react-server src/server/db/run-migrations.ts",
+    "db:seed": "tsx --conditions=react-server src/server/db/seed-cli.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
