@@ -46,7 +46,10 @@ pnpm compute run --drain   # process queued jobs, then exit
 ## Database
 
 Neon serverless Postgres in production. Set `DATABASE_URL` in `.env.local` to the
-**pooled** Neon connection string.
+**pooled** Neon connection string, together with `FAULTLINE_DB_ENVIRONMENT` and
+`FAULTLINE_DB_ID`: Faultline refuses any Neon database whose environment marker does
+not match them, and refuses a production database outside `NODE_ENV=production`. See
+[docs/database-environment.md](docs/database-environment.md).
 
 Without `DATABASE_URL`, the app falls back to a local **PGlite** database at
 `.pglite/` — Postgres compiled to WASM, so the same schema, migrations and SQL
