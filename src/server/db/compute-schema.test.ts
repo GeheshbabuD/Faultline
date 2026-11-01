@@ -183,6 +183,8 @@ describe('migration scope', () => {
       'compute_job_attempts',
       'compute_jobs',
       'concepts',
+      // Migration 0002: the database environment marker (docs/database-environment.md).
+      'faultline_environment',
       'problem_concepts',
       'problem_misconceptions',
       'problems',

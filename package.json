@@ -20,7 +20,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server src/server/db/run-migrations.ts",
     "db:seed": "tsx --conditions=react-server src/server/db/seed-cli.ts",
-    "db:studio": "drizzle-kit studio",
+    "db:studio": "tsx --conditions=react-server src/server/db/drizzle-kit-guarded.ts studio",
     "compute": "tsx --conditions=react-server src/server/compute/cli/main.ts"
   },
   "dependencies": {

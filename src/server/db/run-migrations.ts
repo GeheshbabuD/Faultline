@@ -20,7 +20,10 @@ async function main() {
       driver === 'pglite' ? { driver, dataDir: '.pglite' } : { driver },
     );
 
-    console.log(`Applying migrations (${driver})…`);
+    const where = handle.marker
+      ? `neon, marked ${handle.marker.environment} "${handle.marker.label}"`
+      : driver;
+    console.log(`Applying migrations (${where})…`);
     await runMigrations(handle.db, driver);
     console.log('Migrations applied.');
 

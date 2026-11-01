@@ -1,0 +1,70 @@
+name: Bug report
+description: Something does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Security problems must not be reported here** — see SECURITY.md.
+        Never paste secrets (connection strings, API keys, tokens) or real student data.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. git checkout <branch>
+        2. pnpm install && pnpm dev
+        3. Open /practice/...
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Branch and commit
+      placeholder: d1-database-guard @ e4c762a
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Reasoning workspace / UI
+        - Content
+        - Database / migrations / environment guard
+        - Compute (queue, runner, CLI)
+        - Tooling / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database mode
+      options:
+        - Local PGlite (no DATABASE_URL)
+        - Neon
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node.js version (`node --version`), pnpm version (`pnpm --version`), browser if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Error messages or logs. Remove anything secret first.
+      render: text

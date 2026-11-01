@@ -330,13 +330,19 @@ With `DATABASE_URL` set, the CLI uses Neon, which has no single-process limit �
 runner can run as its own process next to the app, and several runners can share the
 queue safely (claims use `SKIP LOCKED`; settles are fenced).
 
+Every command first passes the **database environment guard**
+([database-environment.md](database-environment.md)): the database's environment
+marker must match `FAULTLINE_DB_ENVIRONMENT` and `FAULTLINE_DB_ID`, the configuration
+must agree with `.env.local`, and a production database is refused outside
+`NODE_ENV=production`. A refused database is never used.
+
 - Apply migrations explicitly first: `pnpm db:migrate`. The CLI never migrates Neon
   implicitly; if the compute tables are missing it fails with `Error[42P01]` and says
   so.
-- Every command prints which database it is using before it does anything — host and
-  database name only, never credentials (`database: neon (ep-…-pooler.….neon.tech/faultline)`
-  on stderr; `run` prints it on its first line) — so you can confirm it is the intended
-  branch. **Use a development branch for development jobs.**
+- Every command prints which database it verified before it does anything — host,
+  database name and the marker's environment and label, never credentials
+  (`database: neon (ep-…-pooler.….neon.tech/faultline), marked development "neon faultline/dev"`
+  on stderr; `run` prints it on its first line).
 
 ---
 

@@ -1,7 +1,9 @@
 import 'server-only';
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
+import type { VerifiedDatabaseMarker } from '@/core/environment/database-guard';
 import { getEnv, isProductionRuntime, requireDatabaseUrl } from '@/server/config/env';
+import { openGuardedDatabase } from './environment-guard';
 import * as schema from './schema';
 
 /**
@@ -46,6 +48,8 @@ type DbHandle = {
   db: Database;
   driver: DriverKind;
   close: () => Promise<void>;
+  /** Neon only: what the database's environment marker says it is, as verified. */
+  marker?: VerifiedDatabaseMarker;
 };
 
 /**
@@ -98,7 +102,12 @@ async function createPglite(dataDir?: string): Promise<DbHandle> {
 
 /**
  * Creates an isolated database. Used by tests, which want a fresh in-memory
- * Postgres per suite rather than the shared application handle.
+ * Postgres per suite rather than the shared application handle, and by the
+ * command-line tools.
+ *
+ * Every Neon connection passes the development-database guard
+ * (environment-guard.ts): it is refused unless the database's environment
+ * marker matches FAULTLINE_DB_ENVIRONMENT and FAULTLINE_DB_ID.
  */
 export async function createDatabase(
   options: { driver?: DriverKind; dataDir?: string } = {},
@@ -106,7 +115,8 @@ export async function createDatabase(
   const driver = options.driver ?? resolveDriverKind();
 
   if (driver === 'neon') {
-    return createNeon(requireDatabaseUrl());
+    const url = requireDatabaseUrl();
+    return openGuardedDatabase(() => createNeon(url));
   }
 
   return createPglite(options.dataDir);
