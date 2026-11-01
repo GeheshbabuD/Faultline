@@ -124,6 +124,10 @@ export function getDbHandle(): Promise<DbHandle> {
         '[faultline] DATABASE_URL is not set — using a local PGlite database at .pglite/. ' +
           'Set DATABASE_URL in .env.local to use Neon.',
       );
+      // PGlite is single-process: refuse while a command-line process (the
+      // compute runner, db:migrate, db:seed) has the directory open.
+      const { assertPgliteNotLocked } = await import('./pglite-lock');
+      assertPgliteNotLocked('.pglite');
       const handle = await createPglite('.pglite');
       const { runMigrations } = await import('./migrate');
       await runMigrations(handle.db, 'pglite');
@@ -135,7 +139,11 @@ export function getDbHandle(): Promise<DbHandle> {
     }
 
     return createDatabase({ driver: 'neon' });
-  })();
+  })().catch((error: unknown) => {
+    // Not cached: a later request retries (e.g. once the PGlite lock is free).
+    globalForDb.__faultlineDb = undefined;
+    throw error;
+  });
 
   return globalForDb.__faultlineDb;
 }
