@@ -10,22 +10,29 @@ async function main() {
   const { createDatabase, resolveDriverKind } = await import('./client');
   const { runMigrations } = await import('./migrate');
   const { seedContent } = await import('./seed');
+  const { acquirePgliteLock } = await import('./pglite-lock');
 
   const driver = resolveDriverKind();
-  const handle = await createDatabase(
-    driver === 'pglite' ? { driver, dataDir: '.pglite' } : { driver },
-  );
+  // PGlite is single-process; see pglite-lock.ts.
+  const lock = driver === 'pglite' ? acquirePgliteLock('.pglite', 'db:seed') : null;
+  try {
+    const handle = await createDatabase(
+      driver === 'pglite' ? { driver, dataDir: '.pglite' } : { driver },
+    );
 
-  await runMigrations(handle.db, driver);
-  const report = await seedContent(handle.db);
+    await runMigrations(handle.db, driver);
+    const report = await seedContent(handle.db);
 
-  console.log(`Seeded (${driver}):`);
-  console.log(`  concepts                     ${report.concepts}`);
-  console.log(`  problems                     ${report.problems}`);
-  console.log(`  reference solutions created  ${report.referenceSolutionsCreated}`);
-  console.log(`  reference solutions unchanged ${report.referenceSolutionsUnchanged}`);
+    console.log(`Seeded (${driver}):`);
+    console.log(`  concepts                     ${report.concepts}`);
+    console.log(`  problems                     ${report.problems}`);
+    console.log(`  reference solutions created  ${report.referenceSolutionsCreated}`);
+    console.log(`  reference solutions unchanged ${report.referenceSolutionsUnchanged}`);
 
-  await handle.close();
+    await handle.close();
+  } finally {
+    lock?.release();
+  }
 }
 
 main().catch((error: unknown) => {

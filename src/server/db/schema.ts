@@ -5,6 +5,7 @@ import {
   uuid,
   integer,
   boolean,
+  jsonb,
   timestamp,
   index,
   uniqueIndex,
@@ -355,6 +356,192 @@ export const reasoningSteps = pgTable(
 );
 
 /* ============================================================================
+   COMPUTE JOBS
+
+   Background work that is too slow or too broad for a request: batch
+   evaluation, reports, analytics. The database is the queue and the single
+   source of truth: executors hold no state that is not recoverable from these
+   rows, and a job is only `succeeded` once its validated result is stored here.
+
+   Enum values mirror src/core/compute (statuses, error codes, outcomes,
+   backends); a test asserts they stay identical. They are literal here, as
+   elsewhere in this file, so drizzle-kit can load the schema with no path
+   aliases.
+
+   Privacy: `params` holds only what a task's strict parameter schema allows,
+   and tasks are designed so that is never student-identifying. Results are
+   aggregates. Neither column is ever a copy of student reasoning.
+   ========================================================================= */
+
+export const computeJobStatusEnum = pgEnum('compute_job_status', [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'cancelled',
+]);
+
+/** Phase B executes locally only. Phase C adds 'dask' in its own migration. */
+export const computeBackendEnum = pgEnum('compute_backend', ['local']);
+
+export const computeErrorCodeEnum = pgEnum('compute_error_code', [
+  'unknown_task',
+  'invalid_params',
+  'invalid_output',
+  'output_too_large',
+  'task_error',
+  'timeout',
+  'cancelled',
+  'lease_expired',
+  'interrupted',
+  'internal',
+]);
+
+export const computeRequesterKindEnum = pgEnum('compute_requester_kind', ['user', 'system']);
+
+export const computeAttemptOutcomeEnum = pgEnum('compute_attempt_outcome', [
+  'succeeded',
+  'failed',
+  'cancelled',
+  'lease_expired',
+  'discarded',
+]);
+
+export const computeJobs = pgTable(
+  'compute_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    /** Registered task type, e.g. `content.answer-recheck`. */
+    taskType: text('task_type').notNull(),
+    /** The task version the job was submitted against; the runner must match it. */
+    taskVersion: integer('task_version').notNull(),
+
+    /**
+     * Deduplicates submissions: the same requester submitting the same task
+     * with the same parameters (and client key, if any) gets the same job.
+     */
+    idempotencyKey: text('idempotency_key').notNull(),
+
+    /** Validated, canonical job parameters. Never student-identifying. */
+    params: jsonb('params').notNull(),
+    paramsHash: text('params_hash').notNull(),
+
+    status: computeJobStatusEnum('status').notNull().default('queued'),
+
+    /**
+     * Who asked. A user (owner of the job, cascades with the account) or a named
+     * system process such as the development CLI. Exactly one is set.
+     */
+    requesterKind: computeRequesterKindEnum('requester_kind').notNull(),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'cascade' }),
+    requesterLabel: text('requester_label'),
+
+    /** Attempts started so far, including one in progress. */
+    attempt: integer('attempt').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull(),
+    timeoutMs: integer('timeout_ms').notNull(),
+
+    /** A queued job is not claimable before this instant (retry backoff). */
+    notBefore: timestamp('not_before', { withTimezone: true }).notNull(),
+
+    /** The runner holding a running job, and until when. Fences stale writers. */
+    leaseOwner: text('lease_owner'),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }),
+
+    cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
+
+    /** Where the latest attempt executed. */
+    backend: computeBackendEnum('backend'),
+
+    /** Set only together with status `succeeded`, after output validation. */
+    result: jsonb('result'),
+    resultHash: text('result_hash'),
+
+    /** The last failure. Kept on a retried job so its status can say why. */
+    errorCode: computeErrorCodeEnum('error_code'),
+    /** A fixed description or a sanitised task-authored message. Never raw. */
+    errorMessage: text('error_message'),
+
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('compute_jobs_idempotency_key_key').on(table.idempotencyKey),
+    /** The claim query: oldest eligible queued job first. */
+    index('compute_jobs_claim_idx').on(table.status, table.notBefore, table.submittedAt),
+    index('compute_jobs_requested_by_idx').on(table.requestedBy, table.submittedAt),
+    /** The reclaim query: running jobs whose lease has lapsed. */
+    index('compute_jobs_lease_idx').on(table.status, table.leaseExpiresAt),
+    check('compute_jobs_task_version_positive', sql`${table.taskVersion} > 0`),
+    check(
+      'compute_jobs_attempt_bounds',
+      sql`${table.maxAttempts} >= 1 AND ${table.attempt} >= 0 AND ${table.attempt} <= ${table.maxAttempts}`,
+    ),
+    check('compute_jobs_timeout_positive', sql`${table.timeoutMs} > 0`),
+    check(
+      'compute_jobs_requester_consistent',
+      sql`(${table.requesterKind} = 'user' AND ${table.requestedBy} IS NOT NULL AND ${table.requesterLabel} IS NULL)
+        OR (${table.requesterKind} = 'system' AND ${table.requestedBy} IS NULL AND ${table.requesterLabel} IS NOT NULL)`,
+    ),
+    check(
+      'compute_jobs_running_has_lease',
+      sql`${table.status} <> 'running' OR (${table.leaseOwner} IS NOT NULL AND ${table.leaseExpiresAt} IS NOT NULL)`,
+    ),
+    check(
+      'compute_jobs_only_running_has_lease',
+      sql`${table.status} = 'running' OR (${table.leaseOwner} IS NULL AND ${table.leaseExpiresAt} IS NULL)`,
+    ),
+    check(
+      'compute_jobs_result_iff_succeeded',
+      sql`(${table.status} = 'succeeded') = (${table.result} IS NOT NULL)`,
+    ),
+    check(
+      'compute_jobs_failed_has_error',
+      sql`${table.status} <> 'failed' OR ${table.errorCode} IS NOT NULL`,
+    ),
+    check(
+      'compute_jobs_terminal_has_completed_at',
+      sql`(${table.status} IN ('succeeded', 'failed', 'cancelled')) = (${table.completedAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
+/** One row per attempt: the retry history, and where each attempt's time went. */
+export const computeJobAttempts = pgTable(
+  'compute_job_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => computeJobs.id, { onDelete: 'cascade' }),
+    attempt: integer('attempt').notNull(),
+    runnerId: text('runner_id').notNull(),
+    backend: computeBackendEnum('backend').notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    outcome: computeAttemptOutcomeEnum('outcome'),
+    errorCode: computeErrorCodeEnum('error_code'),
+    durationMs: integer('duration_ms'),
+  },
+  (table) => [
+    uniqueIndex('compute_job_attempts_job_attempt_key').on(table.jobId, table.attempt),
+    check('compute_job_attempts_attempt_positive', sql`${table.attempt} >= 1`),
+    check(
+      'compute_job_attempts_duration_non_negative',
+      sql`${table.durationMs} IS NULL OR ${table.durationMs} >= 0`,
+    ),
+    check(
+      'compute_job_attempts_outcome_iff_finished',
+      sql`(${table.outcome} IS NULL) = (${table.finishedAt} IS NULL)`,
+    ),
+  ],
+);
+
+/* ============================================================================
    RELATIONS
    ========================================================================= */
 
@@ -448,6 +635,10 @@ export type ReasoningStep = typeof reasoningSteps.$inferSelect;
 
 export type NewAttempt = typeof attempts.$inferInsert;
 export type NewReasoningStep = typeof reasoningSteps.$inferInsert;
+
+export type ComputeJob = typeof computeJobs.$inferSelect;
+export type NewComputeJob = typeof computeJobs.$inferInsert;
+export type ComputeJobAttempt = typeof computeJobAttempts.$inferSelect;
 
 export type ReasoningStatus = (typeof reasoningStatusEnum.enumValues)[number];
 export type StepStatus = (typeof stepStatusEnum.enumValues)[number];

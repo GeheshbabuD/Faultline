@@ -41,3 +41,6 @@ Thumbs.db
 
 # local pglite database
 .pglite/
+
+# pglite single-process lock (see src/server/db/pglite-lock.ts)
+.pglite.lock

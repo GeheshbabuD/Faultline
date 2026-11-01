@@ -1,7 +1,7 @@
 import { createDatabase, type Database } from '@/server/db/client';
 import { runMigrations } from '@/server/db/migrate';
 import { seedContent } from '@/server/db/seed';
-import { ensureDevActor, type Actor } from '@/server/auth/actor';
+import { ensureDevActor, type Actor, type ActorRole } from '@/server/auth/actor';
 import { users } from '@/server/db/schema';
 
 /**
@@ -36,17 +36,22 @@ export async function createTestDatabase(
 
 /** A second real user, for proving that ownership boundaries actually hold. */
 export async function createOtherActor(db: Database): Promise<Actor> {
+  return createActorWithRole(db, 'student');
+}
+
+/** A real user with the given role, for authorization tests. */
+export async function createActorWithRole(db: Database, role: ActorRole): Promise<Actor> {
   const [row] = await db
     .insert(users)
     .values({
-      name: 'Another student',
-      email: `other-${Math.random().toString(36).slice(2)}@faultline.local`,
-      role: 'student',
+      name: `Test ${role}`,
+      email: `${role}-${Math.random().toString(36).slice(2)}@faultline.local`,
+      role,
     })
     .returning();
 
   if (!row) {
-    throw new Error('Failed to create the second test actor');
+    throw new Error(`Failed to create a test ${role}`);
   }
 
   return { id: row.id, role: row.role, name: row.name, email: row.email };

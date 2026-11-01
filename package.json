@@ -18,11 +18,13 @@
     "test:e2e": "playwright test",
     "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/server/db/run-migrations.ts",
-    "db:seed": "tsx src/server/db/seed-cli.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:migrate": "tsx --conditions=react-server src/server/db/run-migrations.ts",
+    "db:seed": "tsx --conditions=react-server src/server/db/seed-cli.ts",
+    "db:studio": "drizzle-kit studio",
+    "compute": "tsx --conditions=react-server src/server/compute/cli/main.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@electric-sql/pglite": "^0.5.8",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-slot": "^1.3.3",
