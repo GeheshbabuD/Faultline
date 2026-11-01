@@ -1,0 +1,49 @@
+name: Feature or improvement
+description: Propose new behaviour, content or a change to existing behaviour.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Faultline is built in phases (see docs/roadmap.md). Proposals that belong to a later
+        phase are welcome, but are scheduled with that phase.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What student, teacher or developer problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should happen? Include examples of reasoning traces or content if relevant.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Reasoning analysis (comparison, diagnosis, transfer)
+        - Reasoning workspace / UI
+        - Content (problems, reference reasoning, taxonomy)
+        - Database
+        - Compute
+        - Tooling / CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This proposal does not require storing student-identifying data in compute jobs or logs.
+        - label: I have read docs/architecture.md and the proposal respects the layer rules.
