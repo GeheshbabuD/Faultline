@@ -1,18 +1,24 @@
 import 'server-only';
 import { canonicalJson, CanonicalJsonError, utf8ByteLength } from '@/core/compute/canonical-json';
 import type { ComputeErrorCode } from '@/core/compute/errors';
-import type { ComputeJobStatus } from '@/core/compute/job-state';
+import type { ComputeAttemptOutcome, ComputeJobStatus } from '@/core/compute/job-state';
 import type { ComputeBackend } from '@/core/compute/task';
 import { systemClock, type Clock } from '@/core/clock';
 import { ForbiddenError, type Actor } from '@/server/auth/actor';
 import { getDb, type Database } from '@/server/db/client';
-import type { ComputeJob } from '@/server/db/schema';
+import type { ComputeJob, ComputeJobAttempt } from '@/server/db/schema';
 import {
   CLIENT_IDEMPOTENCY_KEY_PATTERN,
   deriveIdempotencyKey,
   sha256Hex,
 } from '@/server/compute/idempotency';
-import { findJob, insertJobIfAbsent, listJobs, requestCancel } from '@/server/compute/job-store';
+import {
+  findJob,
+  insertJobIfAbsent,
+  listAttempts,
+  listJobs,
+  requestCancel,
+} from '@/server/compute/job-store';
 import type { TaskRegistry } from '@/server/compute/registry';
 import type { RegisteredTask } from '@/server/compute/task';
 import { getDefaultTaskRegistry } from '@/server/compute/tasks';
@@ -95,6 +101,30 @@ export function toComputeJobView(job: ComputeJob): ComputeJobView {
     error: job.errorCode
       ? { code: job.errorCode, message: job.errorMessage ?? '' }
       : null,
+  };
+}
+
+/** One attempt's history, without the runner that made it. */
+export type ComputeAttemptView = {
+  attempt: number;
+  backend: ComputeBackend;
+  startedAt: Date;
+  finishedAt: Date | null;
+  /** Null while the attempt is still in progress. */
+  outcome: ComputeAttemptOutcome | null;
+  errorCode: ComputeErrorCode | null;
+  durationMs: number | null;
+};
+
+export function toComputeAttemptView(row: ComputeJobAttempt): ComputeAttemptView {
+  return {
+    attempt: row.attempt,
+    backend: row.backend,
+    startedAt: row.startedAt,
+    finishedAt: row.finishedAt,
+    outcome: row.outcome,
+    errorCode: row.errorCode,
+    durationMs: row.durationMs,
   };
 }
 
@@ -233,6 +263,23 @@ export async function getComputeJob(
     return null;
   }
   return toComputeJobView(job);
+}
+
+/** A job's attempt history, under the same visibility rule as the job itself. */
+export async function listComputeJobAttempts(
+  requester: ComputeRequester,
+  jobId: string,
+  options: Pick<ServiceOptions, 'db'> = {},
+): Promise<ComputeAttemptView[] | null> {
+  const db = options.db ?? (await getDb());
+  assertValidRequester(requester);
+
+  const job = await findJob(db, jobId);
+  if (!job || !canSee(requester, job)) {
+    return null;
+  }
+  const rows = await listAttempts(db, job.id);
+  return rows.map(toComputeAttemptView);
 }
 
 export async function listComputeJobs(

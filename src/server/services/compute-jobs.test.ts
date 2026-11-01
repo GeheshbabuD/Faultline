@@ -13,6 +13,7 @@ import {
   cancelComputeJob,
   ComputeJobValidationError,
   getComputeJob,
+  listComputeJobAttempts,
   listComputeJobs,
   submitComputeJob,
   type ComputeRequester,
@@ -260,5 +261,35 @@ describe('cancelComputeJob', () => {
     expect(await cancelComputeJob(user(admin), job.id, { db: harness.db, clock })).toMatchObject({
       changed: true,
     });
+  });
+});
+
+describe('listComputeJobAttempts', () => {
+  it('shows attempt history without the runner that made it', async () => {
+    const { job } = await submit(user(teacherA), 'test.double', { n: 1 });
+    await claimNextJob(harness.db, { runnerId: 'host:1:abc', backend: 'local', leaseMs: 60_000, clock });
+
+    const attempts = await listComputeJobAttempts(user(teacherA), job.id, { db: harness.db });
+    expect(attempts).toEqual([
+      {
+        attempt: 1,
+        backend: 'local',
+        startedAt: clock.now(),
+        finishedAt: null,
+        outcome: null,
+        errorCode: null,
+        durationMs: null,
+      },
+    ]);
+    expect(JSON.stringify(attempts)).not.toContain('host:1:abc');
+  });
+
+  it('follows the job visibility rule', async () => {
+    const { job } = await submit(user(teacherA), 'test.double', { n: 1 });
+
+    expect(await listComputeJobAttempts(user(teacherB), job.id, { db: harness.db })).toBeNull();
+    expect(await listComputeJobAttempts(user(admin), job.id, { db: harness.db })).toEqual([]);
+    expect(await listComputeJobAttempts(cli, job.id, { db: harness.db })).toEqual([]);
+    expect(await listComputeJobAttempts(cli, 'not-a-uuid', { db: harness.db })).toBeNull();
   });
 });
