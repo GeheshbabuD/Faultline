@@ -33,15 +33,10 @@ Full setup, database modes and troubleshooting: [docs/development.md](docs/devel
 
 ## Branches
 
-Work is developed on stacked branches and merged in order:
-
-```
-main ─▶ phase-b-compute ─▶ d1-database-guard ─▶ docs/repository-setup
-```
-
-Branch from the most recent branch your change depends on, and name it for the work
-(`fix/answer-alternates`, `docs/compute-limits`). Never force-push a shared branch or
-rewrite published history.
+Branch from `main` and name the branch for the work (`fix/answer-alternates`,
+`docs/compute-limits`). If your change depends on another unmerged branch, branch from
+that one and say so in the pull request. Never force-push a shared branch or rewrite
+published history.
 
 ## Workflow
 

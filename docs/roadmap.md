@@ -68,22 +68,23 @@ Phase C, which has not been approved or started.
 | Step | Scope | Status |
 | --- | --- | --- |
 | D1 | Database environment guard on every Neon connection; guarded drizzle-kit; marker table and provisioning script | ✅ |
-| D2 | Provision the Neon development database: verify identity, inspect, mark, then migrate and seed | 🟡 Identity verified and database inspected (empty); marking not yet performed |
+| D2 | Bring up the Neon development database | 🟡 Provisioned, marked and guard-verified; migrations and seed pending |
+
+D2 step by step:
+
+| Step | Status |
+| --- | --- |
+| Verify the Neon project, branch and endpoint identities (read-only) | ✅ |
+| Inspect the database (read-only): empty, no marker | ✅ |
+| **Provision and mark** the database: one `development` marker row, created by a person in the Neon SQL editor | ✅ |
+| **Verify the D1 guard against the real database**: a matching configuration is admitted; a wrong `FAULTLINE_DB_ID` is refused (`database_id_mismatch`); conflicting shell overrides of any guarded variable are refused (`source_conflict`); refused connections are closed; no credentials appear in output | ✅ |
+| **Apply schema migrations** (`pnpm db:migrate`) | ⬜ Pending |
+| **Seed authored content** (`pnpm db:seed`) | ⬜ Pending |
 
 ## Branches
 
-The tracks are on stacked branches, not yet merged:
-
-```
-main ─▶ phase-b-compute ─▶ d1-database-guard ─▶ docs/repository-setup
-```
-
-| Branch | Adds |
-| --- | --- |
-| `main` | Product Phases 1–2 |
-| `phase-b-compute` | Product Phase 3 checkpoint; compute Phase B |
-| `d1-database-guard` | Database D1 |
-| `docs/repository-setup` | Repository documentation, security policy, templates, CI fix |
+All tracks above are merged into `main`. New work starts from `main` on a short-lived
+branch and returns through a pull request.
 
 ---
 
@@ -120,13 +121,11 @@ main ─▶ phase-b-compute ─▶ d1-database-guard ─▶ docs/repository-setu
 ### Database and tooling
 
 - **PGlite is single-process**: stop `pnpm dev` before CLI commands or e2e tests.
-- **The Neon development database is not yet marked**, so Neon-backed development,
-  migrations and seeds are not in use yet.
+- **The Neon development database has no application schema yet.** It is marked and
+  passes the guard, but migrations and seed have not been applied, so pages and
+  compute commands that query application tables fail against it (the CLI reports
+  `Error[42P01]`). Local PGlite remains the working development database.
 - **`pnpm db:studio` verifies, then starts drizzle-kit as a separate process** a moment
   later.
 - **The guard catches mistakes, not intent**: someone who can rewrite the marker, or who
   configures production deliberately, is not stopped by it.
-- **CI on `main` fails in its pnpm installation step until this branch is merged.** The
-  workflow on the earlier branches pins a different pnpm version from the one in
-  `packageManager`, which `pnpm/action-setup@v4` rejects; `docs/repository-setup`
-  fixes it.

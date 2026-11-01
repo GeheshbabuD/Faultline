@@ -73,6 +73,10 @@ Neon has no single-process limit, so the compute runner can run beside the app. 
 command prints the database it verified. Full rules and refusal codes:
 [database-environment.md](database-environment.md).
 
+The project's own Neon development database is marked and guard-verified, but its
+schema migrations and seed have not been applied yet; see
+[roadmap.md › Database](roadmap.md#database).
+
 ## Commands
 
 | Command | Purpose |
