@@ -38,6 +38,9 @@ pnpm db:generate # generate a migration from the schema
 pnpm db:migrate  # apply migrations
 pnpm db:seed     # seed authored content (idempotent)
 pnpm db:studio   # browse the database
+
+pnpm compute help          # background compute jobs (see docs/compute.md)
+pnpm compute run --drain   # process queued jobs, then exit
 ```
 
 ## Database
@@ -50,6 +53,11 @@ Without `DATABASE_URL`, the app falls back to a local **PGlite** database at
 semantics apply. It auto-migrates and auto-seeds on boot, which means a fresh
 clone runs with no credentials, and the test suite exercises real persistence
 rather than mocks. Production requires `DATABASE_URL` and fails closed without it.
+
+PGlite is single-process: only one process may open `.pglite/` at a time. The
+command-line tools (`pnpm compute`, `pnpm db:migrate`, `pnpm db:seed`) hold a lock
+while they use it and refuse to start while `pnpm dev` is running, and the dev server
+refuses while one of them holds it.
 
 ## Architecture
 
