@@ -109,7 +109,7 @@ Legend: ✅ implemented · 🟡 in progress · ⬜ planned
 | ✅ | Database environment guard | Refuses any Neon database whose environment marker does not match configuration |
 | ✅ | Background compute foundation | Database-backed job queue, runner, `LocalExecutor`, `pnpm compute` CLI |
 | 🟡 | Reasoning comparison (Phase 3) | Step pairing, diff contract and confidence policy exist; not wired to the product |
-| 🟡 | Neon development database provisioning | Verified and inspected; marking the database is pending |
+| 🟡 | Neon development database | Provisioned, marked and guard-verified against the real database; schema migrations and seed pending |
 | ⬜ | Misconception classification (Phase 4) | Curated taxonomy + closed-set classifier |
 | ⬜ | Repair and transfer checks | Follow-up problems that test whether a repair holds |
 | ⬜ | Real authentication (Phase 8) | Today a deterministic development user stands in |
@@ -308,9 +308,20 @@ refused to any process not running with `NODE_ENV=production`.
 Every command prints which database it verified before doing anything. The full rules
 and refusal codes are in [docs/database-environment.md](docs/database-environment.md).
 
-> **Status:** the project's own Neon development database has been verified and
-> inspected, but has **not yet been marked**, so no migrations or seeds have been
-> applied to it. Local PGlite is the working development database today.
+> **Status of the project's Neon development database (D2):**
+>
+> - ✅ **Provisioned and marked:** exactly one `development` marker row.
+> - ✅ **Guard verified against the real database:** a matching configuration is
+>   admitted; a wrong `FAULTLINE_DB_ID` and conflicting shell overrides are refused,
+>   refused connections are closed, and no credentials appear in output.
+> - ⬜ **Schema migrations pending:** `pnpm db:migrate` has not been run, so the
+>   application's tables do not exist there yet.
+> - ⬜ **Seed pending:** `pnpm db:seed` has not been run.
+>
+> Until migrations are applied, a machine configured for this database can connect to
+> and verify it, but pages and compute commands that query application tables fail
+> (the CLI reports `Error[42P01]`). Leave `DATABASE_URL` unset to keep using local
+> PGlite, which remains the working development database.
 
 ## Development commands
 
@@ -389,16 +400,9 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 | Compute | Phase B — compute abstraction: queue, runner, `LocalExecutor`, CLI | ✅ Complete |
 | Compute | Phase C — Dask executor | ⬜ Not started |
 | Database | D1 — database environment guard | ✅ Complete |
-| Database | D2 — Neon development provisioning | 🟡 In progress; the marker is not yet provisioned |
+| Database | D2 — Neon development database | 🟡 Provisioned, marked and guard-verified; schema migrations and seed pending |
 
-The work is on stacked branches that have not yet been merged:
-
-| Branch | Contains |
-| --- | --- |
-| `main` | Phases 1–2 |
-| `phase-b-compute` | `main` + Phase 3 checkpoint + compute Phase B |
-| `d1-database-guard` | `phase-b-compute` + D1 database guard |
-| `docs/repository-setup` | `d1-database-guard` + repository documentation and hygiene |
+Everything marked complete above is merged into `main`.
 
 ## Development roadmap
 
@@ -423,7 +427,8 @@ The work is on stacked branches that have not yet been merged:
 
 **Database**
 
-- **D2:** mark the Neon development database, then migrate and seed it.
+- **D2 (remaining):** apply the schema migrations (`pnpm db:migrate`), then seed the
+  authored content (`pnpm db:seed`), on the marked Neon development database.
 
 The full roadmap, including known limitations, is in [docs/roadmap.md](docs/roadmap.md).
 

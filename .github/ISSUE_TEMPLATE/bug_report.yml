@@ -28,7 +28,7 @@ body:
     id: branch
     attributes:
       label: Branch and commit
-      placeholder: d1-database-guard @ e4c762a
+      placeholder: main @ abc1234
     validations:
       required: true
   - type: dropdown
