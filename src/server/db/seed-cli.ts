@@ -23,7 +23,10 @@ async function main() {
     await runMigrations(handle.db, driver);
     const report = await seedContent(handle.db);
 
-    console.log(`Seeded (${driver}):`);
+    const where = handle.marker
+      ? `neon, marked ${handle.marker.environment} "${handle.marker.label}"`
+      : driver;
+    console.log(`Seeded (${where}):`);
     console.log(`  concepts                     ${report.concepts}`);
     console.log(`  problems                     ${report.problems}`);
     console.log(`  reference solutions created  ${report.referenceSolutionsCreated}`);

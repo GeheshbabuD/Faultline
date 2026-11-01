@@ -12,7 +12,7 @@ import { getProblemWorkspace } from '@/server/services/problems';
 import { findJob } from '../job-store';
 import { createTaskRegistry, type TaskRegistry } from '../registry';
 import { getDefaultTaskRegistry } from '../tasks';
-import { describeNeonUrl } from './context';
+import { describeNeonDatabase, describeNeonUrl } from './context';
 import { runComputeCli, USAGE, type CliContext } from './run-cli';
 
 let harness: TestDatabase;
@@ -297,6 +297,18 @@ describe('failure reporting', () => {
       'neon (ep-dev-123-pooler.aws.neon.tech/faultline)',
     );
     expect(describeNeonUrl('not a url')).toBe('neon');
+  });
+
+  it('adds what the verified marker says the database is', () => {
+    const url = 'postgresql://user:p4ss@ep-dev-123-pooler.aws.neon.tech/faultline';
+    expect(
+      describeNeonDatabase(url, {
+        environment: 'development',
+        databaseId: '6f1c2b0e-5d4a-4c3b-9a8f-7e6d5c4b3a21',
+        label: 'neon faultline/dev',
+      }),
+    ).toBe('neon (ep-dev-123-pooler.aws.neon.tech/faultline), marked development "neon faultline/dev"');
+    expect(describeNeonDatabase(url, undefined)).not.toContain('p4ss');
   });
 });
 

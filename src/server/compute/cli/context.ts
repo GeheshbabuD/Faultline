@@ -1,5 +1,6 @@
 import 'server-only';
 import { systemClock } from '@/core/clock';
+import type { VerifiedDatabaseMarker } from '@/core/environment/database-guard';
 import { getEnv } from '@/server/config/env';
 import { createDatabase, resolveDriverKind } from '@/server/db/client';
 import { runMigrations } from '@/server/db/migrate';
@@ -20,11 +21,19 @@ export function describeNeonUrl(url: string): string {
   }
 }
 
+/** The Neon label plus what the database's verified marker says it is. */
+export function describeNeonDatabase(url: string, marker: VerifiedDatabaseMarker | undefined): string {
+  const base = describeNeonUrl(url);
+  return marker ? `${base}, marked ${marker.environment} "${marker.label}"` : base;
+}
+
 /**
  * Opens the database the CLI works on.
  *
- * - Neon (DATABASE_URL set): used as is. Migrations are applied explicitly
- *   with `pnpm db:migrate`, never implicitly by a job command.
+ * - Neon (DATABASE_URL set): only after the development-database guard has
+ *   verified its environment marker (createDatabase does this; see
+ *   server/db/environment-guard). Migrations are applied explicitly with
+ *   `pnpm db:migrate`, never implicitly by a job command.
  * - PGlite (no DATABASE_URL): the local `.pglite/` directory, under the
  *   single-process lock, migrated and seeded exactly as the dev server does on
  *   boot. The lock is released on close.
@@ -36,7 +45,7 @@ export async function openCliContext(): Promise<CliContext> {
     const handle = await createDatabase({ driver });
     return {
       db: handle.db,
-      databaseLabel: describeNeonUrl(getEnv().DATABASE_URL ?? ''),
+      databaseLabel: describeNeonDatabase(getEnv().DATABASE_URL ?? '', handle.marker),
       registry: getDefaultTaskRegistry(),
       clock: systemClock,
       signals: process,
