@@ -20,7 +20,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server src/server/db/run-migrations.ts",
     "db:seed": "tsx --conditions=react-server src/server/db/seed-cli.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "compute": "tsx --conditions=react-server src/server/compute/cli/main.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
