@@ -542,6 +542,45 @@ export const computeJobAttempts = pgTable(
 );
 
 /* ============================================================================
+   DATABASE ENVIRONMENT MARKER
+
+   What this database IS: development or production, a random id, and a label.
+   Read by the development-database guard (server/db/environment-guard) before
+   anything uses a Neon database.
+
+   The table is created by migration 0002 (IF NOT EXISTS) and by the
+   provisioning script, but its single row is written ONLY by a human, once,
+   when the database is provisioned (server/db/provisioning). The application,
+   migrations and seeds never write it, so nothing automated can make a database
+   claim to be something else. The environment values mirror
+   core/environment/database-guard; a test asserts they agree.
+   ========================================================================= */
+
+export const faultlineEnvironment = pgTable(
+  'faultline_environment',
+  {
+    /** Always true: the primary key makes this a one-row table. */
+    singleton: boolean('singleton').primaryKey().default(true),
+    environment: text('environment').notNull(),
+    databaseId: uuid('database_id').notNull(),
+    /** Human-readable, e.g. "neon faultline/dev". Shown when the guard refuses or verifies. */
+    label: text('label').notNull(),
+    markedAt: timestamp('marked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('faultline_environment_singleton', sql`${table.singleton}`),
+    check(
+      'faultline_environment_known',
+      sql`${table.environment} IN ('development', 'production')`,
+    ),
+    check(
+      'faultline_environment_label_length',
+      sql`char_length(${table.label}) BETWEEN 1 AND 100`,
+    ),
+  ],
+);
+
+/* ============================================================================
    RELATIONS
    ========================================================================= */
 
@@ -639,6 +678,7 @@ export type NewReasoningStep = typeof reasoningSteps.$inferInsert;
 export type ComputeJob = typeof computeJobs.$inferSelect;
 export type NewComputeJob = typeof computeJobs.$inferInsert;
 export type ComputeJobAttempt = typeof computeJobAttempts.$inferSelect;
+export type FaultlineEnvironmentRow = typeof faultlineEnvironment.$inferSelect;
 
 export type ReasoningStatus = (typeof reasoningStatusEnum.enumValues)[number];
 export type StepStatus = (typeof stepStatusEnum.enumValues)[number];
