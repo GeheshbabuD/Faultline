@@ -497,6 +497,10 @@ export async function runComputeCli(
   }
 
   try {
+    // Say which database before doing anything to it (run says so itself).
+    if (parsed.command !== 'run') {
+      io.err(`database: ${context.databaseLabel}`);
+    }
     return await runCommand(parsed, context, io);
   } catch (error) {
     if (error instanceof ComputeJobValidationError) {

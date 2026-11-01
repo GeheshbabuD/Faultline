@@ -188,7 +188,7 @@ describe('submit', () => {
   it('refuses a task that does not allow the development CLI', async () => {
     const { run, err } = cli({ registry: testRegistry });
     expect(await run('submit', 'test.no-cli', '--params', '{"n":1}')).toBe(1);
-    expect(err[0]).toMatch(/^Refused:/);
+    expect(err).toEqual(['database: test PGlite', 'Refused: You are not allowed to run this task.']);
   });
 });
 
@@ -197,7 +197,7 @@ describe('status, list and cancel', () => {
     for (const id of ['00000000-0000-4000-8000-00000000abcd', 'not-a-uuid']) {
       const { run, err } = cli();
       expect(await run('status', id)).toBe(1);
-      expect(err).toEqual(['No such job.']);
+      expect(err).toEqual(['database: test PGlite', 'No such job.']);
     }
   });
 
@@ -279,10 +279,17 @@ describe('failure reporting', () => {
 
     expect(await run('list')).toBe(1);
     expect(err).toEqual([
+      'database: test PGlite',
       'Failed: Error[42P01]',
       'The compute tables do not exist. Run `pnpm db:migrate` against this database.',
     ]);
     expect(counts.closed).toBe(1);
+  });
+
+  it('names the database it is about to use before every command', async () => {
+    const { run, err } = cli();
+    await run('list');
+    expect(err[0]).toBe('database: test PGlite');
   });
 
   it('labels a Neon database by host and name only', () => {
