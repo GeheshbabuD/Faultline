@@ -15,16 +15,37 @@ dist/
 # testing
 coverage/
 playwright-report/
+blob-report/
 test-results/
 .playwright/
 
-# env — never commit secrets
+# env — never commit secrets. Only the template is tracked.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+id_rsa*
+id_ecdsa*
+id_ed25519*
+
+# neonctl local project context
+.neon
 
 # typescript
 *.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
 
 # editor / os
 .vscode/*
@@ -39,8 +60,15 @@ Thumbs.db
 # local visual checks
 .screenshots/
 
-# local pglite database
+# local pglite database, and any other local pglite data directory
 .pglite/
+.pglite-*/
 
-# pglite single-process lock (see src/server/db/pglite-lock.ts)
+# pglite single-process lock (see src/server/db/pglite-lock.ts): `<data dir>.lock`
 .pglite.lock
+.pglite-*.lock
+
+# Claude Code local settings and scratch output
+.claude/settings.local.json
+.claude/scratchpad/
+scratchpad/
